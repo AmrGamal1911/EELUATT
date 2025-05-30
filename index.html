@@ -561,7 +561,7 @@
                         'Student ID': student.id,
                         'Name': student.name,
                         'Section': student.section,
-                        'Attended': attendee ? 'Yes' : 'No',
+                        'Attended': attendee ? 1 : 0,
                         'Timestamp': attendee ? new Date(attendee.timestamp).toLocaleString() : 'N/A'
                     };
                 });
