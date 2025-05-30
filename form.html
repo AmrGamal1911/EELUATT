@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Form | EELU</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4a6fa5;
+            --light-bg: #f8f9fa;
+            --success: #4CAF50;
+            --danger: #dc3545;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--light-bg);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 500px;
+            width: 100%;
+            padding: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: var(--primary);
+            margin-top: 0;
+            text-align: center;
+        }
+        
+        .btn {
+            background: var(--primary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        
+        input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .alert {
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .session-info {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .closed-message {
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .connection-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ccc;
+        }
+        
+        .status-indicator.connected {
+            background: var(--success);
+        }
+        
+        .status-indicator.connecting {
+            background: #ffc107;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div id="loadingSection" class="loading">
+                <div class="spinner"></div>
+                <p>Loading session...</p>
+            </div>
+            
+            <div id="activeSession" class="hidden">
+                <h1><i class="fas fa-user-check"></i> Attendance Form</h1>
+                
+                <div class="connection-status">
+                    <div class="status-indicator" id="connectionIndicator"></div>
+                    <span id="connectionStatus">Connecting...</span>
+                </div>
+                
+                <div class="session-info">
+                    <p><strong>Subject:</strong> <span id="displaySubject">-</span></p>
+                    <p><strong>Week:</strong> <span id="displayWeek">-</span></p>
+                    <p><strong>Remaining Slots:</strong> <span id="remainingSlots">-</span></p>
+                </div>
+                
+                <div id="message" class="alert hidden"></div>
+                
+                <form id="attendanceForm">
+                    <div class="form-group">
+                        <label for="student_id"><i class="fas fa-id-card"></i> Student ID</label>
+                        <input type="text" id="student_id" name="student_id" placeholder="Enter your university ID" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password"><i class="fas fa-lock"></i> Session Password</label>
+                        <input type="password" id="password" name="password" placeholder="Enter session password" required>
+                    </div>
+                    
+                    <button type="submit" class="btn" id="submitBtn">
+                        <i class="fas fa-check-circle"></i> Submit Attendance
+                    </button>
+                </form>
+            </div>
+            
+            <div id="closedSession" class="hidden closed-message">
+                <h1><i class="fas fa-calendar-times"></i> Session Closed</h1>
+                <p>This attendance session is no longer active.</p>
+                <p>Please contact your instructor for assistance.</p>
+            </div>
+            
+            <div id="noSession" class="hidden closed-message">
+                <h1><i class="fas fa-exclamation-triangle"></i> No Session Found</h1>
+                <p>The attendance session could not be found.</p>
+                <p>Please check the link or contact your instructor.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentSessionId = null;
+        let sessionData = null;
+        let checkInterval = null;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM elements
+            const loadingSection = document.getElementById('loadingSection');
+            const activeSessionDiv = document.getElementById('activeSession');
+            const closedSessionDiv = document.getElementById('closedSession');
+            const noSessionDiv = document.getElementById('noSession');
+            const connectionIndicator = document.getElementById('connectionIndicator');
+            const connectionStatus = document.getElementById('connectionStatus');
+            const displaySubjectSpan = document.getElementById('displaySubject');
+            const displayWeekSpan = document.getElementById('displayWeek');
+            const remainingSlotsSpan = document.getElementById('remainingSlots');
+            const attendanceForm = document.getElementById('attendanceForm');
+            const messageDiv = document.getElementById('message');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            // Get session ID from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            currentSessionId = urlParams.get('session') || 'default_session';
+            
+            // Initialize
+            initializeSession();
+            
+            // Form submission
+            attendanceForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                submitAttendance();
+            });
+            
+            async function initializeSession() {
+                updateConnectionStatus('connecting');
+                
+                try {
+                    // Load session data
+                    await loadSessionData();
+                    
+                    if (!sessionData) {
+                        showNoSession();
+                        return;
+                    }
+                    
+                    if (!sessionData.active) {
+                        showClosedSession();
+                        return;
+                    }
+                    
+                    // Show active session
+                    showActiveSession();
+                    
+                    // Start periodic check for updates
+                    startPeriodicCheck();
+                    
+                    updateConnectionStatus('connected');
+                    
+                } catch (error) {
+                    console.error('Failed to initialize session:', error);
+                    showMessage('Failed to connect to session', 'danger');
+                    updateConnectionStatus('error');
+                }
+            }
+            
+            async function loadSessionData() {
+                try {
+                    // Try to load from cloud storage first
+                    const cloudData = await loadFromCloud();
+                    if (cloudData) {
+                        sessionData = cloudData.session;
+                        return;
+                    }
+                    
+                    // Fallback to localStorage (for testing)
+                    const localData = localStorage.getItem('cloudSession_' + currentSessionId);
+                    if (localData) {
+                        const parsed = JSON.parse(localData);
+                        sessionData = parsed.session;
+                        return;
+                    }
+                    
+                    // If no session found, try the default session for backwards compatibility
+                    if (currentSessionId !== 'default_session') {
+                        const defaultSession = localStorage.getItem('currentSession');
+                        if (defaultSession) {
+                            sessionData = JSON.parse(defaultSession);
+                            return;
+                        }
+                    }
+                    
+                    sessionData = null;
+                } catch (error) {
+                    console.error('Error loading session data:', error);
+                    sessionData = null;
+                }
+            }
+            
+            async function loadFromCloud() {
+                // This would be replaced with actual cloud storage API calls
+                // For now, we'll simulate it with localStorage
+                try {
+                    const cloudData = localStorage.getItem('cloudSession_' + currentSessionId);
+                    return cloudData ? JSON.parse(cloudData) : null;
+                } catch (error) {
+                    console.error('Cloud load failed:', error);
+                    return null;
+                }
+            }
+            
+            async function saveToCloud(attendeeData) {
+                try {
+                    // Get current session data
+                    const currentData = await loadFromCloud() || { session: sessionData, lastUpdated: new Date().toISOString() };
+                    
+                    // Add new attendee
+                    if (!currentData.session.attendees) {
+                        currentData.session.attendees = [];
+                    }
+                    
+                    currentData.session.attendees.push(attendeeData);
+                    currentData.lastUpdated = new Date().toISOString();
+                    
+                    // Save back to cloud (simulate with localStorage)
+                    localStorage.setItem('cloudSession_' + currentSessionId, JSON.stringify(currentData));
+                    
+                    // Update local session data
+                    sessionData = currentData.session;
+                    
+                    return true;
+                } catch (error) {
+                    console.error('Cloud save failed:', error);
+                    return false;
+                }
+            }
+            
+            function showActiveSession() {
+                loadingSection.classList.add('hidden');
+                activeSessionDiv.classList.remove('hidden');
+                closedSessionDiv.classList.add('hidden');
+                noSessionDiv.classList.add('hidden');
+                
+                // Update session info
+                displaySubjectSpan.textContent = sessionData.subject || '-';
+                displayWeekSpan.textContent = sessionData.week || '-';
+                updateRemainingSlots();
+            }
+            
+            function showClosedSession() {
+                loadingSection.classList.add('hidden');
+                activeSessionDiv.classList.add('hidden');
+                closedSessionDiv.classList.remove('hidden');
+                noSessionDiv.classList.add('hidden');
+                updateConnectionStatus('offline');
+            }
+            
+            function showNoSession() {
+                loadingSection.classList.add('hidden');
+                activeSessionDiv.classList.add('hidden');
+                closedSessionDiv.classList.add('hidden');
+                noSessionDiv.classList.remove('hidden');
+                updateConnectionStatus('offline');
+            }
+            
+            function updateRemainingSlots() {
+                if (sessionData && sessionData.maxAttendees && sessionData.attendees) {
+                    const remaining = sessionData.maxAttendees - sessionData.attendees.length;
+                    remainingSlotsSpan.textContent = remaining > 0 ? remaining : '0 (FULL)';
+                    
+                    if (remaining <= 0) {
+                        submitBtn.disabled = true;
+                        showMessage('This session is full', 'info');
+                    }
+                } else {
+                    remainingSlotsSpan.textContent = '-';
+                }
+            }
+            
+            async function submitAttendance() {
+                const studentId = document.getElementById('student_id').value.trim();
+                const password = document.getElementById('password').value;
+                
+                if (!studentId || !password) {
+                    showMessage('Please fill all fields', 'danger');
+                    return;
+                }
+                
+                if (!sessionData || !sessionData.active) {
+                    showMessage('Session is not active', 'danger');
+                    return;
+                }
+                
+                // Check if session is full
+                if (sessionData.attendees && sessionData.attendees.length >= sessionData.maxAttendees) {
+                    showMessage('This session is full', 'danger');
+                    return;
+                }
+                
+                // Verify password
+                if (password !== sessionData.password) {
+                    showMessage('Invalid password', 'danger');
+                    return;
+                }
+                
+                // Check if student exists in roster
+                const student = sessionData.roster.find(s => s.id === studentId);
+                if (!student) {
+                    showMessage('Invalid Student ID', 'danger');
+                    return;
+                }
+                
+                // Check if already attended
+                if (sessionData.attendees && sessionData.attendees.some(a => a.id === studentId)) {
+                    showMessage('Attendance already recorded', 'danger');
+                    return;
+                }
+                
+                // Create attendee record
+                const newAttendee = {
+                    id: studentId,
+                    name: student.name,
+                    section: student.section,
+                    timestamp: new Date().toISOString()
+                };
+                
+                // Disable form during submission
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+                
+                try {
+                    // Save to cloud
+                    const success = await saveToCloud(newAttendee);
+                    
+                    if (success) {
+                        // Update UI
+                        updateRemainingSlots();
+                        showMessage(`Attendance recorded successfully for ${student.name}!`, 'success');
+                        attendanceForm.reset();
+                        
+                        // Show success for longer time
+                        setTimeout(() => {
+                            showMessage('You can close this page now', 'info');
+                        }, 3000);
+                    } else {
+                        throw new Error('Failed to save attendance');
+                    }
+                } catch (error) {
+                    console.error('Submission failed:', error);
+                    showMessage('Failed to submit attendance. Please try again.', 'danger');
+                } finally {
+                    // Re-enable form
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> Submit Attendance';
+                }
+            }
+            
+            function startPeriodicCheck() {
+                if (checkInterval) clearInterval(checkInterval);
+                
+                checkInterval = setInterval(async () => {
+                    if (sessionData && sessionData.active) {
+                        const previousAttendeeCount = sessionData.attendees ? sessionData.attendees.length : 0;
+                        
+                        // Reload session data to check for updates
+                        await loadSessionData();
+                        
+                        if (!sessionData || !sessionData.active) {
+                            showClosedSession();
+                            if (checkInterval) {
+                                clearInterval(checkInterval);
+                                checkInterval = null;
+                            }
+                            return;
+                        }
+                        
+                        // Update UI if attendee count changed
+                        const currentAttendeeCount = sessionData.attendees ? sessionData.attendees.length : 0;
+                        if (currentAttendeeCount !== previousAttendeeCount) {
+                            updateRemainingSlots();
+                        }
+                    }
+                }, 3000); // Check every 3 seconds
+            }
+            
+            function updateConnectionStatus(status) {
+                const indicator = connectionIndicator;
+                const statusText = connectionStatus;
+                
+                indicator.className = 'status-indicator';
+                
+                switch (status) {
+                    case 'connected':
+                        indicator.classList.add('connected');
+                        statusText.textContent = 'Connected';
+                        break;
+                    case 'connecting':
+                        indicator.classList.add('connecting');
+                        statusText.textContent = 'Connecting...';
+                        break;
+                    case 'offline':
+                        statusText.textContent = 'Offline';
+                        break;
+                    case 'error':
+                        statusText.textContent = 'Connection Error';
+                        break;
+                }
+            }
+            
+            function showMessage(text, type) {
+                messageDiv.textContent = text;
+                messageDiv.className = `alert alert-${type}`;
+                messageDiv.classList.remove('hidden');
+                
+                if (type === 'success') {
+                    setTimeout(() => {
+                        if (messageDiv.textContent === text) {
+                            messageDiv.classList.add('hidden');
+                        }
+                    }, 5000);
+                }
+            }
+            
+            // Cleanup on page unload
+            window.addEventListener('beforeunload', function() {
+                if (checkInterval) {
+                    clearInterval(checkInterval);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

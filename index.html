@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance System | EELU</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #4a6fa5;
+            --light-bg: #f8f9fa;
+            --success: #4CAF50;
+            --danger: #dc3545;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--light-bg);
+            margin: 0;
+            padding: 0;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .btn {
+            background: var(--primary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        
+        .btn-success {
+            background: var(--success);
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        
+        input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+        
+        .file-upload {
+            border: 2px dashed #ddd;
+            padding: 2rem;
+            text-align: center;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        #qrcode {
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            display: inline-block;
+            border: 1px solid #eee;
+            margin: 1rem 0;
+        }
+        
+        .session-url {
+            margin: 1rem 0;
+        }
+        
+        .session-url input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+        
+        .alert {
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        #rosterInfo {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .attendance-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+
+        .attendee-item {
+            padding: 0.5rem;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .attendee-item:last-child {
+            border-bottom: none;
+        }
+
+        .sync-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9rem;
+            margin-left: 10px;
+        }
+
+        .sync-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ccc;
+        }
+
+        .sync-indicator.synced {
+            background: var(--success);
+        }
+
+        .sync-indicator.syncing {
+            background: #ffc107;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-qrcode"></i> EELU Attendance System</h1>
+            <p>Teaching Assistant Interface</p>
+        </header>
+
+        <div id="message" class="alert hidden"></div>
+
+        <!-- Upload Roster Section -->
+        <div class="card">
+            <h2><i class="fas fa-upload"></i> Upload Roster</h2>
+            <form id="uploadForm">
+                <div class="file-upload">
+                    <input type="file" id="roster" name="roster" accept=".xlsx,.csv" hidden>
+                    <label for="roster" class="btn">
+                        <i class="fas fa-file-excel"></i> Choose File
+                    </label>
+                    <span id="fileName">No file chosen</span>
+                </div>
+                <div id="rosterInfo" class="hidden">
+                    <p><strong>Subject:</strong> <span id="subjectName">-</span></p>
+                    <p><strong>Students:</strong> <span id="studentCount">0</span></p>
+                </div>
+                <button type="submit" class="btn">
+                    <i class="fas fa-upload"></i> Upload Roster
+                </button>
+            </form>
+        </div>
+
+        <!-- Create Session Section -->
+        <div class="card">
+            <h2><i class="fas fa-plus-circle"></i> Create Attendance Session</h2>
+            <form id="sessionForm">
+                <div class="form-group">
+                    <label for="subject"><i class="fas fa-book"></i> Subject Name</label>
+                    <input type="text" id="subject" name="subject" placeholder="Enter subject name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="week"><i class="fas fa-calendar-week"></i> Week Number</label>
+                    <input type="number" id="week" name="week" min="1" placeholder="Enter week number" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password"><i class="fas fa-lock"></i> Session Password</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="max_attendees"><i class="fas fa-user-plus"></i> Max Attendees</label>
+                    <input type="number" id="max_attendees" name="max_attendees" min="1" value="30" required>
+                </div>
+                
+                <button type="submit" id="createSessionBtn" class="btn" disabled>
+                    <i class="fas fa-qrcode"></i> Generate QR Code
+                </button>
+            </form>
+        </div>
+
+        <!-- Current Session Section -->
+        <div class="card hidden" id="currentSessionCard">
+            <h2><i class="fas fa-qrcode"></i> Current Session 
+                <span class="sync-status">
+                    <div class="sync-indicator" id="syncIndicator"></div>
+                    <span id="syncStatus">Offline</span>
+                </span>
+            </h2>
+            <div class="form-group">
+                <label>Subject: <span id="currentSubject"></span></label>
+            </div>
+            
+            <div class="form-group">
+                <label>Week: <span id="currentWeek"></span></label>
+            </div>
+            
+            <div class="form-group">
+                <label>Attended: <span id="attendedCount">0</span> / <span id="maxAttendeesDisplay"></span></label>
+            </div>
+            
+            <div id="qrcode"></div>
+            
+            <div class="form-group session-url">
+                <label>Shareable Link:</label>
+                <input type="text" id="sessionUrl" value="https://eelu-attendance-a6nl.vercel.app/" readonly>
+            </div>
+
+            <div class="form-group">
+                <label>Live Attendance:</label>
+                <div id="attendanceList" class="attendance-list">
+                    <div style="padding: 1rem; text-align: center; color: #666;">
+                        No attendees yet
+                    </div>
+                </div>
+            </div>
+            
+            <button id="exportBtn" class="btn btn-success">
+                <i class="fas fa-download"></i> Export Attendance
+            </button>
+            
+            <button id="endSessionBtn" class="btn btn-danger">
+                <i class="fas fa-stop-circle"></i> End Session
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let rosterData = [];
+        let currentSession = null;
+        let subjectName = '';
+        let syncInterval = null;
+        
+        // Cloud storage using JSONBin.io (free tier)
+        const JSONBIN_API_KEY = '$2a$10$5wH8vKrGJZ7jF6bK2yH8gu7YHGgFJ9X2oL9kJ8aK6vF4nM3pN1oR7';
+        const JSONBIN_BIN_ID = 'YOUR_BIN_ID'; // You'll need to create this
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM elements
+            const rosterInput = document.getElementById('roster');
+            const fileNameSpan = document.getElementById('fileName');
+            const uploadForm = document.getElementById('uploadForm');
+            const rosterInfoDiv = document.getElementById('rosterInfo');
+            const subjectNameSpan = document.getElementById('subjectName');
+            const studentCountSpan = document.getElementById('studentCount');
+            const sessionForm = document.getElementById('sessionForm');
+            const createSessionBtn = document.getElementById('createSessionBtn');
+            const currentSessionCard = document.getElementById('currentSessionCard');
+            const currentSubjectSpan = document.getElementById('currentSubject');
+            const currentWeekSpan = document.getElementById('currentWeek');
+            const attendedCountSpan = document.getElementById('attendedCount');
+            const maxAttendeesDisplaySpan = document.getElementById('maxAttendeesDisplay');
+            const sessionUrlInput = document.getElementById('sessionUrl');
+            const exportBtn = document.getElementById('exportBtn');
+            const endSessionBtn = document.getElementById('endSessionBtn');
+            const messageDiv = document.getElementById('message');
+            const attendanceListDiv = document.getElementById('attendanceList');
+            const syncIndicator = document.getElementById('syncIndicator');
+            const syncStatus = document.getElementById('syncStatus');
+            
+            // Load any existing data from localStorage
+            loadFromStorage();
+            
+            // File input change handler
+            rosterInput.addEventListener('change', function(e) {
+                if (this.files.length > 0) {
+                    fileNameSpan.textContent = this.files[0].name;
+                    subjectName = this.files[0].name.replace('.xlsx', '').replace('.csv', '');
+                } else {
+                    fileNameSpan.textContent = 'No file chosen';
+                }
+            });
+            
+            // Upload form submission
+            uploadForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                if (rosterInput.files.length === 0) {
+                    showMessage('Please select a file first', 'danger');
+                    return;
+                }
+                
+                const file = rosterInput.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        // Get first sheet
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        
+                        // Convert to JSON
+                        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                        
+                        // Process roster data
+                        rosterData = jsonData.map(row => ({
+                            id: String(row['Student ID'] || row['ID'] || row['id'] || ''),
+                            name: row['Name'] || row['Student Name'] || '',
+                            section: row['Section'] || row['Class'] || ''
+                        })).filter(student => student.id && student.name && student.section);
+                        
+                        // Save to localStorage
+                        localStorage.setItem('rosterData', JSON.stringify(rosterData));
+                        localStorage.setItem('subjectName', subjectName);
+                        
+                        // Update UI
+                        subjectNameSpan.textContent = subjectName;
+                        studentCountSpan.textContent = rosterData.length;
+                        rosterInfoDiv.classList.remove('hidden');
+                        createSessionBtn.disabled = false;
+                        
+                        showMessage('Roster uploaded successfully!', 'success');
+                    } catch (error) {
+                        console.error(error);
+                        showMessage('Error processing file. Please check the format.', 'danger');
+                    }
+                };
+                
+                reader.onerror = function() {
+                    showMessage('Error reading file', 'danger');
+                };
+                
+                reader.readAsArrayBuffer(file);
+            });
+            
+            // Session form submission
+            sessionForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const subject = document.getElementById('subject').value;
+                const week = document.getElementById('week').value;
+                const password = document.getElementById('password').value;
+                const maxAttendees = parseInt(document.getElementById('max_attendees').value);
+                
+                if (!subject || !week || !password || !maxAttendees) {
+                    showMessage('Please fill all fields', 'danger');
+                    return;
+                }
+                
+                // Create session
+                currentSession = {
+                    id: 'session_' + Date.now(),
+                    subject,
+                    week,
+                    password,
+                    maxAttendees,
+                    attendees: [],
+                    roster: rosterData,
+                    createdAt: new Date().toISOString(),
+                    active: true
+                };
+                
+                // Save to localStorage
+                localStorage.setItem('currentSession', JSON.stringify(currentSession));
+                
+                // Sync to cloud
+                await syncToCloud();
+                
+                // Display session
+                displayCurrentSession();
+                
+                // Start periodic sync
+                startPeriodicSync();
+                
+                showMessage('Attendance session created successfully!', 'success');
+            });
+            
+            // Export button click
+            exportBtn.addEventListener('click', function() {
+                if (!currentSession) return;
+                
+                const roster = currentSession.roster || [];
+                
+                // Prepare attendance data
+                const attendanceData = roster.map(student => {
+                    const attended = currentSession.attendees.some(a => a.id === student.id);
+                    return {
+                        'Student ID': student.id,
+                        'Name': student.name,
+                        'Section': student.section,
+                        'Attended': attended ? 'Yes' : 'No',
+                        'Timestamp': attended ? 
+                            currentSession.attendees.find(a => a.id === student.id).timestamp : 'N/A'
+                    };
+                });
+                
+                // Create worksheet
+                const ws = XLSX.utils.json_to_sheet(attendanceData);
+                
+                // Create workbook
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Attendance");
+                
+                // Generate file name
+                const today = new Date();
+                const dateStr = today.toISOString().split('T')[0];
+                const fileName = `${currentSession.subject}_Week${currentSession.week}_${dateStr}.xlsx`;
+                
+                // Export to file
+                XLSX.writeFile(wb, fileName);
+            });
+            
+            // End session button
+            endSessionBtn.addEventListener('click', async function() {
+                if (currentSession) {
+                    currentSession.active = false;
+                    localStorage.setItem('currentSession', JSON.stringify(currentSession));
+                    
+                    // Sync final state to cloud
+                    await syncToCloud();
+                    
+                    // Stop periodic sync
+                    if (syncInterval) {
+                        clearInterval(syncInterval);
+                        syncInterval = null;
+                    }
+                    
+                    showMessage('Session ended successfully', 'success');
+                    currentSessionCard.classList.add('hidden');
+                    updateSyncStatus('offline');
+                }
+            });
+            
+            // Helper functions
+            function loadFromStorage() {
+                const savedSession = localStorage.getItem('currentSession');
+                const savedRoster = localStorage.getItem('rosterData');
+                const savedSubject = localStorage.getItem('subjectName');
+                
+                if (savedSession) {
+                    currentSession = JSON.parse(savedSession);
+                    if (currentSession.active) {
+                        displayCurrentSession();
+                        startPeriodicSync();
+                    }
+                }
+                
+                if (savedRoster) {
+                    rosterData = JSON.parse(savedRoster);
+                    createSessionBtn.disabled = false;
+                }
+                
+                if (savedSubject) {
+                    subjectName = savedSubject;
+                    subjectNameSpan.textContent = subjectName;
+                    studentCountSpan.textContent = rosterData.length;
+                    rosterInfoDiv.classList.remove('hidden');
+                }
+            }
+            
+            function displayCurrentSession() {
+                if (!currentSession) return;
+                
+                currentSubjectSpan.textContent = currentSession.subject;
+                currentWeekSpan.textContent = currentSession.week;
+                attendedCountSpan.textContent = currentSession.attendees.length;
+                maxAttendeesDisplaySpan.textContent = currentSession.maxAttendees;
+                
+                // Generate QR code with session ID
+                const qr = qrcode(0, 'L');
+                qr.addData(`https://eelu-attendance-a6nl.vercel.app/?session=${currentSession.id}`);
+                qr.make();
+                document.getElementById('qrcode').innerHTML = qr.createImgTag(4);
+                
+                // Update session URL
+                sessionUrlInput.value = `https://eelu-attendance-a6nl.vercel.app/?session=${currentSession.id}`;
+                
+                // Update attendance list
+                updateAttendanceList();
+                
+                // Show the card
+                currentSessionCard.classList.remove('hidden');
+            }
+            
+            function updateAttendanceList() {
+                if (!currentSession || !currentSession.attendees.length) {
+                    attendanceListDiv.innerHTML = '<div style="padding: 1rem; text-align: center; color: #666;">No attendees yet</div>';
+                    return;
+                }
+                
+                const attendeesHtml = currentSession.attendees.map(attendee => `
+                    <div class="attendee-item">
+                        <div>
+                            <strong>${attendee.name}</strong><br>
+                            <small>ID: ${attendee.id}</small>
+                        </div>
+                        <div>
+                            <small>${new Date(attendee.timestamp).toLocaleTimeString()}</small>
+                        </div>
+                    </div>
+                `).join('');
+                
+                attendanceListDiv.innerHTML = attendeesHtml;
+            }
+            
+            async function syncToCloud() {
+                if (!currentSession) return;
+                
+                updateSyncStatus('syncing');
+                
+                try {
+                    // Using a simple approach with GitHub Gist or similar service
+                    // For production, you'd want to use a proper backend
+                    
+                    // Alternative: Store in a public JSON file that both can access
+                    // This is a simplified version - in reality you'd use Firebase, Supabase, or similar
+                    
+                    const sessionData = {
+                        session: currentSession,
+                        lastUpdated: new Date().toISOString()
+                    };
+                    
+                    // Simulate cloud sync (replace with actual API call)
+                    localStorage.setItem('cloudSession_' + currentSession.id, JSON.stringify(sessionData));
+                    
+                    updateSyncStatus('synced');
+                    return true;
+                } catch (error) {
+                    console.error('Sync failed:', error);
+                    updateSyncStatus('error');
+                    return false;
+                }
+            }
+            
+            async function syncFromCloud() {
+                if (!currentSession) return;
+                
+                try {
+                    // Simulate cloud fetch (replace with actual API call)
+                    const cloudData = localStorage.getItem('cloudSession_' + currentSession.id);
+                    if (cloudData) {
+                        const parsed = JSON.parse(cloudData);
+                        const cloudSession = parsed.session;
+                        
+                        // Update if cloud version is newer
+                        if (new Date(parsed.lastUpdated) > new Date(currentSession.lastUpdated || 0)) {
+                            currentSession = cloudSession;
+                            localStorage.setItem('currentSession', JSON.stringify(currentSession));
+                            
+                            // Update UI
+                            attendedCountSpan.textContent = currentSession.attendees.length;
+                            updateAttendanceList();
+                        }
+                    }
+                } catch (error) {
+                    console.error('Sync from cloud failed:', error);
+                }
+            }
+            
+            function startPeriodicSync() {
+                if (syncInterval) clearInterval(syncInterval);
+                
+                syncInterval = setInterval(async () => {
+                    if (currentSession && currentSession.active) {
+                        await syncFromCloud();
+                    }
+                }, 5000); // Sync every 5 seconds
+                
+                updateSyncStatus('synced');
+            }
+            
+            function updateSyncStatus(status) {
+                const indicator = syncIndicator;
+                const statusText = syncStatus;
+                
+                indicator.className = 'sync-indicator';
+                
+                switch (status) {
+                    case 'synced':
+                        indicator.classList.add('synced');
+                        statusText.textContent = 'Online';
+                        break;
+                    case 'syncing':
+                        indicator.classList.add('syncing');
+                        statusText.textContent = 'Syncing...';
+                        break;
+                    case 'offline':
+                        statusText.textContent = 'Offline';
+                        break;
+                    case 'error':
+                        statusText.textContent = 'Sync Error';
+                        break;
+                }
+            }
+            
+            function showMessage(text, type) {
+                messageDiv.textContent = text;
+                messageDiv.className = `alert alert-${type}`;
+                messageDiv.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    messageDiv.classList.add('hidden');
+                }, 3000);
+            }
+        });
+    </script>
+</body>
+</html>
