@@ -4,264 +4,980 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Attendance System | EELU</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
-    <!-- Firebase v9 SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
-        import { getDatabase, ref, set, onValue, push, serverTimestamp, off } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js';
+        import { getDatabase, ref, set, onValue, push, serverTimestamp, off, get } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js';
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyBObz0uvQdLKkCGF7Txb_EPw686FzTmAes",
-            authDomain: "eelu-attendance.firebaseapp.com",
-            databaseURL: "https://eelu-attendance-default-rtdb.firebaseio.com",
-            projectId: "eelu-attendance",
-            storageBucket: "eelu-attendance.firebasestorage.app",
-            messagingSenderId: "5132239076",
-            appId: "1:5132239076:web:8a3ea3f78d1ca106596cf1",
-            measurementId: "G-D2WNX8RGRL"
-        };
+            const firebaseConfig = {
+                apiKey: "AIzaSyBObz0uvQdLKkCGF7Txb_EPw686FzTmAes",
+                authDomain: "eelu-attendance.firebaseapp.com",
+                databaseURL: "https://eelu-attendance-default-rtdb.firebaseio.com",
+                projectId: "eelu-attendance",
+                storageBucket: "eelu-attendance.appspot.com",
+                messagingSenderId: "5132239076",
+                appId: "1:5132239076:web:8a3ea3f78d1ca106596cf1",
+                measurementId: "G-D2WNX8RGRL"
+            };
 
-        const app = initializeApp(firebaseConfig);
-        window.database = getDatabase(app);
-        window.dbRef = ref;
-        window.dbSet = set;
-        window.dbOnValue = onValue;
-        window.dbPush = push;
+        const firebaseApp = initializeApp(firebaseConfig);
+        const database = getDatabase(firebaseApp);
+
+        // Make Firebase functions available globally
+            window.database = database;
+            window.dbRef = ref;
+            window.dbSet = set;
+            window.dbOnValue = onValue;
+            window.dbPush = push;
         window.dbServerTimestamp = serverTimestamp;
-        window.dbOff = off;
+            window.dbOff = off;
+            window.dbGet = get;
     </script>
     
     <style>
         :root {
-            --primary: #4a6fa5;
-            --light-bg: #f8f9fa;
-            --success: #4CAF50;
-            --danger: #dc3545;
+            --primary: #667eea;
+            --primary-dark: #5a6fd8;
+            --secondary: #764ba2;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            --dark: #1f2937;
+            --light: #f8fafc;
+            --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-light: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --border-radius: 12px;
+            --border-radius-lg: 16px;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
         
         body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background: var(--light-bg);
-            margin: 0;
-            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--light);
+            line-height: 1.6;
+            color: var(--dark);
+            overflow-x: hidden;
+            background-image: radial-gradient(circle at 10% 20%, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 90%);
         }
         
         .container {
-            max-width: 800px;
-            margin: 2rem auto;
+            max-width: 1000px;
+            margin: 0 auto;
             padding: 2rem;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.05);
         }
         
         header {
             text-align: center;
-            margin-bottom: 2rem;
+            margin-bottom: 3rem;
+            position: relative;
+        }
+        
+        header::after {
+            content: '';
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 4px;
+            background: var(--gradient);
+            border-radius: 2px;
+            animation: slideIn 0.8s ease-out;
+        }
+        
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            animation: slideDown 0.8s ease-out;
+        }
+        
+        header p {
+            font-size: 1.1rem;
+            color: #6b7280;
+            font-weight: 400;
+            animation: slideDown 0.8s ease-out 0.2s both;
         }
         
         .card {
             background: white;
-            border-radius: 10px;
-            padding: 1.5rem;
+            border-radius: var(--border-radius-lg);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            animation: slideUp 0.6s ease-out;
+        }
+        
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .card h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--dark);
             margin-bottom: 1.5rem;
-            border: 1px solid #e0e0e0;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .card h2 i {
+            color: var(--primary);
+            font-size: 1.2rem;
         }
         
         .btn {
-            background: var(--primary);
+            background: var(--gradient);
             color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 6px;
+            padding: 0.875rem 1.75rem;
+            border-radius: var(--border-radius);
             border: none;
             cursor: pointer;
             font-size: 1rem;
-            transition: all 0.3s;
+            font-weight: 500;
+            transition: all 0.3s ease;
             display: inline-flex;
             align-items: center;
-            gap: 8px;
+            justify-content: center;
+            gap: 0.5rem;
         }
         
         .btn:hover {
-            opacity: 0.9;
             transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
         }
         
         .btn:disabled {
-            background: #ccc;
+            background: #d1d5db;
             cursor: not-allowed;
             transform: none;
         }
         
         .btn-success {
-            background: var(--success);
+            background: linear-gradient(135deg, #10b981, #059669);
         }
         
         .btn-danger {
-            background: var(--danger);
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
         }
         
         .form-group {
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
         }
         
         label {
             display: block;
             margin-bottom: 0.5rem;
-            font-weight: 600;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        label i {
+            color: var(--primary);
+            width: 16px;
         }
         
         input {
             width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            box-sizing: border-box;
+            padding: 0.875rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: var(--border-radius);
             font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            outline: none;
         }
         
         .file-upload {
-            border: 2px dashed #ddd;
-            padding: 2rem;
+            border: 2px dashed #d1d5db;
+            padding: 3rem 2rem;
             text-align: center;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            transition: border-color 0.3s;
+            border-radius: var(--border-radius-lg);
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+            background: var(--gradient-light);
         }
         
         .file-upload:hover {
             border-color: var(--primary);
+            background: rgba(102, 126, 234, 0.05);
+        }
+        
+        #fileName {
+            color: #6b7280;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
         }
         
         #qrcode {
-            padding: 1rem;
+            padding: 1.5rem;
             background: white;
-            border-radius: 8px;
+            border-radius: var(--border-radius);
             display: inline-block;
-            border: 1px solid #eee;
+            border: 1px solid #f3f4f6;
             margin: 1rem 0;
-            text-align: center;
+            box-shadow: var(--shadow);
+            animation: scaleIn 0.5s ease-out;
         }
         
         .session-url {
-            margin: 1rem 0;
+            margin: 1.5rem 0;
+        }
+        
+        .session-url .input-group {
+            display: flex;
+            gap: 0.5rem;
         }
         
         .session-url input {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #ddd;
-            border-radius: 6px;
+            flex: 1;
+        }
+        
+        .copy-btn {
+            padding: 0.875rem;
+            min-width: auto;
         }
         
         .alert {
-            padding: 1rem;
-            border-radius: 6px;
-            margin-bottom: 1rem;
+            padding: 1rem 1.5rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 1.5rem;
+            border-left: 4px solid;
+            font-weight: 500;
+            animation: slideInRight 0.5s ease-out;
         }
         
         .alert-success {
-            background: #d4edda;
-            color: #155724;
+            background: rgba(16, 185, 129, 0.1);
+            color: #047857;
+            border-left-color: var(--success);
         }
         
         .alert-danger {
-            background: #f8d7da;
-            color: #721c24;
+            background: rgba(239, 68, 68, 0.1);
+            color: #b91c1c;
+            border-left-color: var(--danger);
+        }
+        
+        .session-status {
+            text-align: center;
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 2rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+        
+        .session-active {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.05));
+            color: #047857;
+            border: 2px solid rgba(16, 185, 129, 0.2);
+        }
+        
+        .session-inactive {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.05));
+            color: #b91c1c;
+            border: 2px solid rgba(239, 68, 68, 0.2);
+        }
+        
+        .sync-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50px;
+        }
+        
+        .sync-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #d1d5db;
+            transition: all 0.3s ease;
+        }
+        
+        .sync-indicator.connected {
+            background: var(--success);
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+        }
+        
+        .sync-indicator.connecting {
+            background: var(--warning);
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+        
+        #rosterInfo {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            background: var(--gradient-light);
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+        
+        .attendance-list {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 1rem;
+            border-radius: var(--border-radius);
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .attendee-item {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideInUp 0.5s ease-out;
+        }
+        
+        .attendee-item:last-child {
+            border-bottom: none;
+        }
+        
+        .attendee-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        
+        .attendee-name {
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        .attendee-details {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        
+        .attendee-time {
+            text-align: right;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        
+        .progress-container {
+            margin: 1.5rem 0;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #f1f5f9;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: var(--gradient);
+            transition: width 0.5s ease;
+            border-radius: 4px;
+        }
+        
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+            color: #6b7280;
+            font-weight: 500;
         }
         
         .hidden {
             display: none !important;
         }
         
-        #rosterInfo {
+        .flex {
+            display: flex;
+        }
+        
+        .flex-1 {
+            flex: 1;
+        }
+        
+        .gap-4 {
+            gap: 1rem;
+        }
+        
+        .mb-4 {
+            margin-bottom: 1rem;
+        }
+        
+        .qr-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .qr-modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            text-align: center;
+            width: 90%;
+            max-width: 500px;
+        }
+        
+        .qr-modal img {
+            width: 100%;
+            max-height: 70vh;
+        }
+        
+        .close-modal {
             margin-top: 1rem;
+            cursor: pointer;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+            margin-left: 10px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: var(--primary);
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+        
+        .session-history {
+            margin-top: 2rem;
+        }
+        
+        .session-item {
             padding: 1rem;
-            background: #f8f9fa;
-            border-radius: 8px;
-        }
-
-        .attendance-list {
-            max-height: 300px;
-            overflow-y: auto;
-            margin-top: 1rem;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-        }
-
-        .attendee-item {
-            padding: 0.75rem;
-            border-bottom: 1px solid #eee;
+            border: 1px solid #e5e7eb;
+            border-radius: var(--border-radius);
+            margin-bottom: 1rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            animation: fadeIn 0.3s ease-in;
+        }
+        
+        .session-item:hover {
+            background-color: #f8fafc;
+        }
+        
+        .session-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .voice-btn {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--gradient);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: var(--shadow-lg);
+            z-index: 100;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .voice-btn::before {
+            content: 'Voice Commands';
+            position: absolute;
+            right: 70px;
+            white-space: nowrap;
+            background: var(--gradient);
+            padding: 0.5rem 1rem;
+            border-radius: 30px;
+            opacity: 0;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+        
+        .voice-btn:hover {
+            width: 200px;
+            border-radius: 30px;
+            justify-content: flex-end;
+            padding-right: 1rem;
+        }
+        
+        .voice-btn:hover::before {
+            opacity: 1;
+            right: 50px;
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: var(--border-radius-lg);
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal.hidden {
+            display: none;
+        }
+        
+        .full-width {
+            width: 100%;
+        }
+        
+        .pac-container {
+            z-index: 2100 !important;
+        }
+        
+        .location-btn {
+            display: none;
+            margin-left: 10px;
+            padding: 0.5rem;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) scaleX(0);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) scaleX(1);
+            }
+        }
+        
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            header h1 {
+                font-size: 2rem;
+            }
+            
+            .card {
+                padding: 1.5rem;
+            }
+            
+            .session-url .input-group {
+                flex-direction: column;
+            }
+            
+            .attendee-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+            
+            .attendee-time {
+                text-align: left;
+            }
+            
+            .voice-btn:hover {
+                width: 60px;
+                border-radius: 50%;
+                justify-content: center;
+                padding-right: 0;
+            }
+            
+            .voice-btn:hover::before {
+                display: none;
+            }
         }
 
-        .attendee-item:last-child {
+        .session-card {
+            margin-bottom: 2rem;
+        }
+
+        .session-card:last-child {
+            margin-bottom: 0;
+        }
+        
+        .update-subject-btn {
+            margin-left: 10px;
+            padding: 0.5rem;
+            background: var(--info);
+            color: white;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .session-feedback {
+            text-align: center;
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            background: #f8fafc;
+            margin-bottom: 1.5rem;
+        }
+
+        .text-red-500 {
+            color: #ef4444;
+        }
+        
+        .spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(102, 126, 234, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .student-qr-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+            max-height: 70vh;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .student-qr-item {
+            background: #f8fafc;
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            text-align: center;
+            border: 1px solid #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .student-qr-item img {
+            width: 100%;
+            height: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: var(--border-radius);
+        }
+
+        .student-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .student-info span {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        .student-links-grid {
+            display: grid;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .student-link-item {
+            background: #f8fafc;
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            border: 1px solid #e5e7eb;
+        }
+
+        .link-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .link-actions input {
+            flex: 1;
+            font-size: 0.875rem;
+            padding: 0.5rem;
+            background: white;
+        }
+
+        .btn-sm {
+            padding: 0.5rem;
+            min-width: auto;
+        }
+
+        @media (max-width: 640px) {
+            .student-qr-list {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .session-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-item {
+            background: var(--gradient-light);
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .stat-item i {
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
+
+        .stat-item strong {
+            font-size: 1.5rem;
+            color: var(--dark);
+        }
+
+        .attendance-list {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .submissions-container {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 1rem;
+        }
+
+        .submission-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .submission-item:last-child {
             border-bottom: none;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
+        .dashboard-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
         }
 
-        .sync-status {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 0.9rem;
-            margin-left: 10px;
+        .history-list {
+            margin-bottom: 1.5rem;
         }
 
-        .sync-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #ccc;
-        }
-
-        .sync-indicator.connected {
-            background: var(--success);
-        }
-
-        .sync-indicator.connecting {
-            background: #ffc107;
-            animation: pulse 1s infinite;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-
-        .session-status {
-            text-align: center;
+        .history-item {
+            background: white;
+            border-radius: var(--border-radius);
             padding: 1rem;
-            border-radius: 8px;
             margin-bottom: 1rem;
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .session-active {
-            background: #d4edda;
-            color: #155724;
+        .history-item-info {
+            flex: 1;
         }
 
-        .session-inactive {
-            background: #f8d7da;
-            color: #721c24;
+        .history-item-actions {
+            display: flex;
+            gap: 0.5rem;
         }
 
-        .copy-btn {
-            background: #6c757d;
-            margin-left: 0.5rem;
+        .history-item-actions button {
             padding: 0.5rem;
+            border-radius: var(--border-radius);
+            border: none;
+            cursor: pointer;
+            color: white;
+            font-size: 1rem;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
     </style>
 </head>
@@ -269,445 +985,743 @@
     <div class="container">
         <header>
             <h1><i class="fas fa-qrcode"></i> EELU Attendance System</h1>
-            <p>Teaching Assistant Interface</p>
+            <p>Teaching Assistant Dashboard</p>
         </header>
 
         <div id="message" class="alert hidden"></div>
 
         <!-- Upload Roster Section -->
         <div class="card">
-            <h2><i class="fas fa-upload"></i> Upload Roster</h2>
+            <h2><i class="fas fa-cloud-upload-alt"></i> Upload Student Roster</h2>
             <form id="uploadForm">
-                <div class="file-upload">
-                    <input type="file" id="roster" name="roster" accept=".xlsx,.csv" hidden>
-                    <label for="roster" class="btn">
-                        <i class="fas fa-file-excel"></i> Choose File
+                <div class="file-upload" id="fileUpload">
+                    <i class="fas fa-file-excel fa-3x mb-3" style="color: var(--primary); margin-bottom: 1rem; display: block;"></i>
+                    <p>Drop your roster Excel file here or click to browse</p>
+                    <input type="file" id="rosterFile" accept=".xlsx,.xls" style="display: none;">
+                </div>
+
+                <div class="form-group" id="subjectNameGroup" style="display: none;">
+                    <label for="subjectName">
+                        <i class="fas fa-book"></i>
+                        Subject Name
                     </label>
-                    <div style="margin-top: 1rem;">
-                        <span id="fileName">No file chosen</span>
+                    <div style="display: flex; gap: 1rem;">
+                        <input type="text" id="subjectName" placeholder="Subject name will be auto-filled from file">
+                        <button class="btn btn-secondary" id="updateSubjectBtn">
+                            <i class="fas fa-edit"></i>
+                            Update
+                        </button>
                     </div>
                 </div>
-                <div id="rosterInfo" class="hidden">
-                    <p><strong>Subject:</strong> <span id="subjectName">-</span></p>
-                    <p><strong>Students:</strong> <span id="studentCount">0</span></p>
+
+                <div class="form-group">
+                    <label for="weekNumber">
+                        <i class="fas fa-calendar-week"></i>
+                        Week Number
+                    </label>
+                    <input type="number" id="weekNumber" min="1" placeholder="Enter week number">
+                </div>
+
+                <div class="form-group">
+                    <label for="maxAttendees">
+                        <i class="fas fa-users"></i>
+                        Max Attendees per Section
+                    </label>
+                    <input type="number" id="maxAttendees" min="1" placeholder="Enter maximum attendees">
+                </div>
+
+                <div class="form-group">
+                    <label for="sessionPassword">
+                        <i class="fas fa-lock"></i>
+                        Session Password (Optional)
+                    </label>
+                    <input type="text" id="sessionPassword" placeholder="Enter session password">
+                </div>
+
+                <div class="form-group">
+                    <label for="outlookEmail">
+                        <i class="fas fa-envelope"></i>
+                        Outlook Email (Optional)
+                    </label>
+                    <input type="email" id="outlookEmail" placeholder="Enter outlook email">
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="enableLocation">
+                        <i class="fas fa-map-marker-alt"></i>
+                        Enable Location Check
+                    </label>
+                </div>
+
+                <div id="locationSettings" style="display: none;">
+                    <div class="form-group">
+                        <label for="roomName">
+                            <i class="fas fa-door-open"></i>
+                            Room Name
+                        </label>
+                        <input type="text" id="roomName" placeholder="Enter room name">
+                    </div>
+                    <div class="form-group">
+                        <label for="maxDistance">
+                            <i class="fas fa-ruler"></i>
+                            Max Distance (meters)
+                        </label>
+                        <input type="number" id="maxDistance" min="0" placeholder="Enter maximum allowed distance">
+                    </div>
+                    <div class="qr-section">
+                        <button class="btn btn-secondary" id="getLocationQR">
+                            <i class="fas fa-qrcode"></i>
+                            Get Location QR Code
+                        </button>
+                        <div id="qrCodeDisplay" style="display: none; margin-top: 1rem;"></div>
+                    </div>
                 </div>
                 <button type="submit" class="btn">
-                    <i class="fas fa-upload"></i> Upload Roster
+                    <i class="fas fa-upload"></i> Process Roster
                 </button>
             </form>
         </div>
 
         <!-- Create Session Section -->
         <div class="card">
-            <h2><i class="fas fa-plus-circle"></i> Create Attendance Session</h2>
+            <h2><i class="fas fa-play-circle"></i> Create Attendance Session</h2>
             <form id="sessionForm">
-                <div class="form-group">
-                    <label for="week"><i class="fas fa-calendar-week"></i> Week Number</label>
-                    <input type="number" id="week" name="week" min="1" placeholder="Enter week number" required>
+                <div class="flex gap-4">
+                    <div class="form-group flex-1">
+                        <label for="week"><i class="fas fa-calendar-week"></i> Week Number</label>
+                        <input type="number" id="week" name="week" min="1" max="52" placeholder="e.g., 1" required>
+                    </div>
+                    
+                    <div class="form-group flex-1">
+                        <label for="max_attendees"><i class="fas fa-user-friends"></i> Max Attendees</label>
+                        <input type="number" id="max_attendees" name="max_attendees" min="1" max="500" value="30" required>
+                    </div>
                 </div>
                 
                 <div class="form-group">
-                    <label for="password"><i class="fas fa-lock"></i> Session Password</label>
-                    <input type="password" id="password" name="password" placeholder="Create a session password" required>
+                    <label for="password"><i class="fas fa-shield-alt"></i> Session Password (Optional)</label>
+                    <input type="password" id="password" name="password" placeholder="Leave blank for no password">
                 </div>
                 
                 <div class="form-group">
-                    <label for="max_attendees"><i class="fas fa-user-plus"></i> Max Attendees</label>
-                    <input type="number" id="max_attendees" name="max_attendees" min="1" value="30" required>
+                    <label for="ta_email"><i class="fas fa-envelope"></i> Your Outlook Email</label>
+                    <input type="email" id="ta_email" name="ta_email" placeholder="Enter your Outlook email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label style="display: flex; align-items: center;">
+                        <i class="fas fa-map-marker-alt"></i> Enable Location Check
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="useLocation">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <button type="button" id="setLocationBtn" class="btn btn-secondary location-btn">
+                            <i class="fas fa-map-marked-alt"></i> Set Location
+                        </button>
+                    </label>
+                    <div id="locationSettings" class="hidden">
+                        <label for="locationDistance">Maximum Distance (meters):</label>
+                        <input type="number" id="locationDistance" value="50" min="10">
+                        <div id="locationPreview" style="margin-top: 0.5rem; font-size: 0.9rem; color: #6b7280;">
+                            No location selected
+                        </div>
+                    </div>
                 </div>
                 
                 <button type="submit" id="createSessionBtn" class="btn" disabled>
-                    <i class="fas fa-play"></i> Start Session
+                    <i class="fas fa-rocket"></i> Launch Session
                 </button>
             </form>
         </div>
 
-        <!-- Current Session Section -->
-        <div class="card hidden" id="currentSessionCard">
-            <div class="session-status session-active" id="sessionStatus">
-                <i class="fas fa-broadcast-tower"></i> Session Active
-                <span class="sync-status">
-                    <div class="sync-indicator" id="syncIndicator"></div>
-                    <span id="syncStatus">Connecting...</span>
-                </span>
-            </div>
-            
-            <h2><i class="fas fa-qrcode"></i> Current Session</h2>
-            
-            <div class="form-group">
-                <label><strong>Subject:</strong> <span id="currentSubject"></span></label>
-            </div>
-            
-            <div class="form-group">
-                <label><strong>Week:</strong> <span id="currentWeek"></span></label>
-            </div>
-            
-            <div class="form-group">
-                <label><strong>Attended:</strong> <span id="attendedCount">0</span> / <span id="maxAttendeesDisplay"></span></label>
-            </div>
-            
-            <div style="text-align: center;">
-                <div id="qrcode"></div>
-            </div>
-            
-            <div class="form-group session-url">
-                <label>Student Form Link:</label>
-                <div style="display: flex; align-items: center;">
-                    <input type="text" id="sessionUrl" readonly>
-                    <button type="button" class="btn copy-btn" onclick="copyToClipboard()">
-                        <i class="fas fa-copy"></i>
-                    </button>
-                </div>
-            </div>
+        <!-- Sessions Container -->
+        <div id="sessionsContainer"></div>
 
-            <div class="form-group">
-                <label><strong>Live Attendance:</strong></label>
-                <div id="attendanceList" class="attendance-list">
-                    <div style="padding: 1rem; text-align: center; color: #666;">
-                        No attendees yet
-                    </div>
+        <!-- Session History Section -->
+        <div class="card session-history hidden" id="sessionHistoryCard">
+            <h2><i class="fas fa-history"></i> Session History</h2>
+            <div id="sessionHistoryList"></div>
+            <button onclick="attendanceApp.clearSessionHistory()" class="btn btn-danger">
+                <i class="fas fa-trash"></i> Clear History
+            </button>
+        </div>
+
+        <div id="sessionDashboard" class="card" style="display: none;">
+            <h2><i class="fas fa-chart-line"></i> Live Session Dashboard</h2>
+            <div class="session-stats">
+                <div class="stat-item">
+                    <i class="fas fa-users"></i>
+                    <span>Present Students</span>
+                    <strong id="presentCount">0</strong>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-clock"></i>
+                    <span>Session Duration</span>
+                    <strong id="sessionDuration">00:00:00</strong>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-percentage"></i>
+                    <span>Attendance Rate</span>
+                    <strong id="attendanceRate">0%</strong>
                 </div>
             </div>
-            
-            <div style="text-align: center; margin-top: 1.5rem;">
-                <button id="exportBtn" class="btn btn-success">
-                    <i class="fas fa-download"></i> Export Attendance
+            <div class="attendance-list">
+                <h3>Recent Submissions</h3>
+                <div id="recentSubmissions" class="submissions-container"></div>
+            </div>
+            <div class="dashboard-actions">
+                <button class="btn btn-danger" id="endSessionBtn">
+                    <i class="fas fa-stop-circle"></i>
+                    End Session
                 </button>
-                
-                <button id="endSessionBtn" class="btn btn-danger">
-                    <i class="fas fa-stop-circle"></i> End Session
+                <button class="btn btn-secondary" id="exportBtn">
+                    <i class="fas fa-file-export"></i>
+                    Export Attendance
+                </button>
+            </div>
+        </div>
+
+        <div id="sessionHistory" class="card">
+            <h2><i class="fas fa-history"></i> Session History</h2>
+            <div class="history-list" id="historyList">
+                <!-- Session history items will be dynamically added here -->
+            </div>
+            <button class="btn btn-secondary" id="clearHistoryBtn">
+                <i class="fas fa-trash"></i>
+                Clear History
+            </button>
+        </div>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div id="qrModal" class="qr-modal">
+        <div class="qr-modal-content">
+            <div id="fullscreenQr"></div>
+            <button onclick="attendanceApp.closeFullscreenQR()" class="btn close-modal">
+                <i class="fas fa-times"></i> Close
+            </button>
+        </div>
+    </div>
+
+    <!-- Location Picker Modal -->
+    <div id="locationQRModal" class="modal hidden">
+        <div class="modal-content">
+            <h2><i class="fas fa-qrcode"></i> Set Location via Mobile</h2>
+            <p class="text-center mb-4">Scan this QR code with your mobile device to set the class location</p>
+            
+            <div id="locationQRCode" class="text-center"></div>
+            
+            <div id="locationStatus" class="alert alert-info mt-4">
+                <div id="locationPreview">Waiting for location from mobile device...</div>
+                <div class="spinner mt-2"></div>
+            </div>
+            
+            <div class="flex gap-4 mt-4">
+                <button onclick="attendanceApp.closeLocationModal()" class="btn btn-danger">
+                    <i class="fas fa-times"></i> Cancel
                 </button>
             </div>
         </div>
     </div>
 
+    <!-- Voice Command Button -->
+    <div class="voice-btn" id="voiceBtn" title="Voice Commands">
+        <i class="fas fa-microphone"></i>
+    </div>
+
     <script>
-        // Global variables
-        let rosterData = [];
-        let currentSession = null;
-        let subjectName = '';
-        let sessionRef = null;
-        let attendeesRef = null;
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            // Wait for Firebase to initialize
-            setTimeout(initializeApp, 1000);
-        });
-        
-        function initializeApp() {
-            // DOM elements
-            const rosterInput = document.getElementById('roster');
-            const fileNameSpan = document.getElementById('fileName');
-            const uploadForm = document.getElementById('uploadForm');
-            const rosterInfoDiv = document.getElementById('rosterInfo');
-            const subjectNameSpan = document.getElementById('subjectName');
-            const studentCountSpan = document.getElementById('studentCount');
-            const sessionForm = document.getElementById('sessionForm');
-            const createSessionBtn = document.getElementById('createSessionBtn');
-            const currentSessionCard = document.getElementById('currentSessionCard');
-            const currentSubjectSpan = document.getElementById('currentSubject');
-            const currentWeekSpan = document.getElementById('currentWeek');
-            const attendedCountSpan = document.getElementById('attendedCount');
-            const maxAttendeesDisplaySpan = document.getElementById('maxAttendeesDisplay');
-            const sessionUrlInput = document.getElementById('sessionUrl');
-            const exportBtn = document.getElementById('exportBtn');
-            const endSessionBtn = document.getElementById('endSessionBtn');
-            const messageDiv = document.getElementById('message');
-            const attendanceListDiv = document.getElementById('attendanceList');
-            const syncIndicator = document.getElementById('syncIndicator');
-            const syncStatus = document.getElementById('syncStatus');
-            const sessionStatus = document.getElementById('sessionStatus');
-            
-            // File input change handler
-            rosterInput.addEventListener('change', function(e) {
-                if (this.files.length > 0) {
-                    const fileName = this.files[0].name;
-                    fileNameSpan.textContent = fileName;
-                    // Extract subject name from file name
-                    subjectName = fileName.replace(/\.(xlsx|csv)$/i, '').replace(/_/g, ' ');
-                } else {
-                    fileNameSpan.textContent = 'No file chosen';
-                }
-            });
-            
-            // Upload form submission
-            uploadForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                if (rosterInput.files.length === 0) {
-                    showMessage('Please select a file first', 'danger');
-                    return;
-                }
-                
-                const file = rosterInput.files[0];
-                const reader = new FileReader();
-                
-                reader.onload = function(e) {
-                    try {
-                        const data = new Uint8Array(e.target.result);
-                        const workbook = XLSX.read(data, { type: 'array' });
-                        
-                        // Get first sheet
-                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                        
-                        // Convert to JSON
-                        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-                        
-                        // Process roster data - handle different column name formats
-                        rosterData = jsonData.map(row => {
-                            // Try different possible column names
-                            const id = String(row['Student ID'] || row['ID'] || row['id'] || row['StudentID'] || row['student_id'] || '').trim();
-                            const name = (row['Name'] || row['Student Name'] || row['name'] || row['StudentName'] || row['student_name'] || '').trim();
-                            const section = (row['Section'] || row['Class'] || row['section'] || row['class'] || '').trim();
-                            
-                            return { id, name, section };
-                        }).filter(student => student.id && student.name);
-                        
-                        if (rosterData.length === 0) {
-                            showMessage('No valid student data found. Please check your file format.', 'danger');
-                            return;
-                        }
-                        
-                        // Update UI
-                        subjectNameSpan.textContent = subjectName;
-                        studentCountSpan.textContent = rosterData.length;
-                        rosterInfoDiv.classList.remove('hidden');
-                        createSessionBtn.disabled = false;
-                        
-                        showMessage('Roster uploaded successfully!', 'success');
-                    } catch (error) {
-                        console.error(error);
-                        showMessage('Error processing file. Please check the format.', 'danger');
-                    }
-                };
-                
-                reader.onerror = function() {
-                    showMessage('Error reading file', 'danger');
-                };
-                
-                reader.readAsArrayBuffer(file);
-            });
-            
-            // Session form submission
-            sessionForm.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                
-                const week = document.getElementById('week').value;
-                const password = document.getElementById('password').value;
-                const maxAttendees = parseInt(document.getElementById('max_attendees').value);
-                
-                if (!subjectName || !week || !password || !maxAttendees) {
-                    showMessage('Please upload roster and fill all fields', 'danger');
-                    return;
-                }
-                
-                try {
-                    updateSyncStatus('connecting');
-                    
-                    // Create session
-                    const sessionId = 'session_' + Date.now();
-                    currentSession = {
-                        id: sessionId,
-                        subject: subjectName,
-                        week,
-                        password,
-                        maxAttendees,
-                        roster: rosterData,
-                        createdAt: window.dbServerTimestamp(),
-                        active: true,
-                        attendeeCount: 0
-                    };
-                    
-                    // Save to Firebase
-                    sessionRef = window.dbRef(window.database, `sessions/${sessionId}`);
-                    await window.dbSet(sessionRef, currentSession);
-                    
-                    // Listen for attendees
-                    attendeesRef = window.dbRef(window.database, `sessions/${sessionId}/attendees`);
-                    window.dbOnValue(attendeesRef, (snapshot) => {
-                        const attendees = snapshot.val() || {};
-                        const attendeeList = Object.values(attendees);
-                        currentSession.attendees = attendeeList;
-                        currentSession.attendeeCount = attendeeList.length;
-                        
-                        // Update UI
-                        attendedCountSpan.textContent = attendeeList.length;
-                        updateAttendanceList(attendeeList);
-                    });
-                    
-                    // Display session
-                    displayCurrentSession();
-                    updateSyncStatus('connected');
-                    
-                    showMessage('Attendance session started successfully!', 'success');
-                } catch (error) {
-                    console.error('Error creating session:', error);
-                    showMessage('Failed to create session. Please try again.', 'danger');
-                    updateSyncStatus('error');
-                }
-            });
-            
-            // Export button click
-            exportBtn.addEventListener('click', function() {
-                if (!currentSession) return;
-                
-                const roster = currentSession.roster || [];
-                const attendees = currentSession.attendees || [];
-                
-                // Prepare attendance data
-                const attendanceData = roster.map(student => {
-                    const attendee = attendees.find(a => a.id === student.id);
-                    return {
-                        'Student ID': student.id,
-                        'Name': student.name,
-                        'Section': student.section,
-                        'Attended': attendee ? 1 : 0,
-                        'Timestamp': attendee ? new Date(attendee.timestamp).toLocaleString() : 'N/A'
-                    };
+        class AttendanceSystem {
+            constructor() {
+                this.db = window.database;
+                this.currentSession = null;
+                this.roster = null;
+                this.locations = {};
+                this.sessionStartTime = null;
+                this.durationInterval = null;
+                this.submissionsListener = null;
+                this.setupEventListeners();
+                this.setupVoiceCommands();
+                this.loadSavedLocations();
+                this.loadSessionHistory();
+            }
+
+            setupEventListeners() {
+                const fileUpload = document.getElementById('fileUpload');
+                const rosterFile = document.getElementById('rosterFile');
+                const updateSubjectBtn = document.getElementById('updateSubjectBtn');
+                const enableLocation = document.getElementById('enableLocation');
+                const getLocationQR = document.getElementById('getLocationQR');
+
+                fileUpload.addEventListener('click', () => rosterFile.click());
+                fileUpload.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    fileUpload.classList.add('dragover');
                 });
-                
-                // Create worksheet
-                const ws = XLSX.utils.json_to_sheet(attendanceData);
-                
-                // Create workbook
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Attendance");
-                
-                // Generate file name
-                const today = new Date();
-                const dateStr = today.toISOString().split('T')[0];
-                const fileName = `${currentSession.subject}_Week${currentSession.week}_${dateStr}.xlsx`;
-                
-                // Export to file
-                XLSX.writeFile(wb, fileName);
-            });
-            
-            // End session button
-            endSessionBtn.addEventListener('click', async function() {
-                if (currentSession && sessionRef) {
-                    try {
-                        // Update session as inactive
-                        await window.dbSet(window.dbRef(window.database, `sessions/${currentSession.id}/active`), false);
-                        
-                        // Stop listening
-                        if (attendeesRef) {
-                            window.dbOff(attendeesRef);
-                        }
-                        
-                        // Update UI
-                        sessionStatus.className = 'session-status session-inactive';
-                        sessionStatus.innerHTML = '<i class="fas fa-stop-circle"></i> Session Ended';
-                        
-                        showMessage('Session ended successfully', 'success');
-                        updateSyncStatus('offline');
-                        
-                        // Hide the card after a delay
-                        setTimeout(() => {
-                            currentSessionCard.classList.add('hidden');
-                        }, 3000);
-                    } catch (error) {
-                        console.error('Error ending session:', error);
-                        showMessage('Failed to end session', 'danger');
-                    }
-                }
-            });
-            
-            // Helper functions
-            function displayCurrentSession() {
-                if (!currentSession) return;
-                
-                currentSubjectSpan.textContent = currentSession.subject;
-                currentWeekSpan.textContent = currentSession.week;
-                attendedCountSpan.textContent = currentSession.attendeeCount || 0;
-                maxAttendeesDisplaySpan.textContent = currentSession.maxAttendees;
-                
-                // Generate QR code with the correct URL
-                const formUrl = `https://eeluatt.vercel.app/form.html?session=${currentSession.id}`;
-                const qr = qrcode(0, 'L');
-                qr.addData(formUrl);
-                qr.make();
-                document.getElementById('qrcode').innerHTML = qr.createImgTag(5);
-                
-                // Update session URL
-                sessionUrlInput.value = formUrl;
-                
-                // Show the card
-                currentSessionCard.classList.remove('hidden');
+                fileUpload.addEventListener('dragleave', () => fileUpload.classList.remove('dragover'));
+                fileUpload.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    fileUpload.classList.remove('dragover');
+                    const file = e.dataTransfer.files[0];
+                    if (file) this.processRosterFile(file);
+                });
+
+                rosterFile.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) this.processRosterFile(file);
+                });
+
+                updateSubjectBtn.addEventListener('click', () => this.updateSubjectName());
+                enableLocation.addEventListener('change', () => {
+                    document.getElementById('locationSettings').style.display = 
+                        enableLocation.checked ? 'block' : 'none';
+                });
+
+                getLocationQR.addEventListener('click', () => this.generateLocationQR());
+
+                document.getElementById('endSessionBtn').addEventListener('click', () => this.endSession());
+                document.getElementById('exportBtn').addEventListener('click', () => this.exportAttendance());
+                document.getElementById('clearHistoryBtn').addEventListener('click', () => this.clearHistory());
             }
-            
-            function updateAttendanceList(attendees) {
-                if (!attendees || attendees.length === 0) {
-                    attendanceListDiv.innerHTML = '<div style="padding: 1rem; text-align: center; color: #666;">No attendees yet</div>';
+
+            setupVoiceCommands() {
+                if ('webkitSpeechRecognition' in window) {
+                    const recognition = new webkitSpeechRecognition();
+                    recognition.continuous = true;
+                    recognition.interimResults = false;
+
+                    recognition.onresult = (event) => {
+                        const command = event.results[event.results.length - 1][0].transcript.toLowerCase();
+                        if (command.includes('start session')) {
+                            this.startSession();
+                        } else if (command.includes('end session')) {
+                            this.endSession();
+                        }
+                    };
+
+                    recognition.start();
+                }
+            }
+
+            async processRosterFile(file) {
+                try {
+                    const data = await this.readExcelFile(file);
+                    this.roster = this.parseRoster(data);
+                    
+                    // Auto-set subject name from filename
+                    const subjectName = file.name.replace(/\.[^/.]+$/, "");
+                    document.getElementById('subjectName').value = subjectName;
+                    document.getElementById('subjectNameGroup').style.display = 'block';
+                    
+                    // Show success message
+                    this.showMessage('Roster file processed successfully', 'success');
+                } catch (error) {
+                    console.error('Error processing roster:', error);
+                    this.showMessage('Error processing roster file. Please try again.', 'danger');
+                }
+            }
+
+            parseRoster(data) {
+                // Assuming the Excel has columns: ID, Name, Section, Week1, Week1_Timestamp, etc.
+                return data.map(row => ({
+                    id: row.ID?.toString(),
+                    name: row.Name,
+                    section: row.Section,
+                    weeks: Object.keys(row)
+                        .filter(key => key.startsWith('Week') && !key.includes('Timestamp'))
+                        .reduce((acc, key) => {
+                            const weekNum = key.replace('Week', '');
+                            acc[weekNum] = {
+                                attendance: row[key] || 0,
+                                timestamp: row[`Week${weekNum}_Timestamp`] || null
+                            };
+                            return acc;
+                        }, {})
+                }));
+            }
+
+            async readExcelFile(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = new Uint8Array(e.target.result);
+                            const workbook = XLSX.read(data, { type: 'array' });
+                            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                            const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                            resolve(jsonData);
+                        } catch (error) {
+                            reject(error);
+                        }
+                    };
+                    reader.onerror = reject;
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+
+            updateSubjectName() {
+                const newName = document.getElementById('subjectName').value.trim();
+                if (newName) {
+                    set(ref(this.db, 'sessions/current/subjectName'), newName);
+                }
+            }
+
+            loadSavedLocations() {
+                const savedLocations = localStorage.getItem('savedLocations');
+                if (savedLocations) {
+                    this.locations = JSON.parse(savedLocations);
+                    // Populate room selection if needed
+                }
+            }
+
+            async generateLocationQR() {
+                if ('geolocation' in navigator) {
+                    try {
+                        const position = await new Promise((resolve, reject) => {
+                            navigator.geolocation.getCurrentPosition(resolve, reject);
+                        });
+
+                        const { latitude, longitude } = position.coords;
+                        const roomName = document.getElementById('roomName').value.trim();
+                        
+                        if (roomName) {
+                            this.locations[roomName] = { latitude, longitude };
+                            localStorage.setItem('savedLocations', JSON.stringify(this.locations));
+                            
+                            const locationData = `${latitude},${longitude}`;
+                            const qr = qrcode(0, 'L');
+                            qr.addData(locationData);
+                            qr.make();
+                            
+                            const qrDisplay = document.getElementById('qrCodeDisplay');
+                            qrDisplay.innerHTML = qr.createImgTag(5);
+                            qrDisplay.style.display = 'block';
+                        } else {
+                            alert('Please enter a room name first');
+                        }
+                    } catch (error) {
+                        console.error('Error getting location:', error);
+                        alert('Error getting location. Please try again.');
+                    }
+                } else {
+                    alert('Geolocation is not supported by this browser');
+                }
+            }
+
+            async startSession() {
+                if (!this.roster) {
+                    this.showMessage('Please upload a roster file first', 'danger');
                     return;
                 }
+
+                const weekNumber = document.getElementById('weekNumber').value;
+                const maxAttendees = document.getElementById('maxAttendees').value;
+                const sessionPassword = document.getElementById('sessionPassword').value;
+                const outlookEmail = document.getElementById('outlookEmail').value;
+                const enableLocation = document.getElementById('enableLocation').checked;
                 
-                const attendeesHtml = attendees
-                    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)) // Sort by newest first
-                    .map(attendee => `
-                        <div class="attendee-item">
-                            <div>
-                                <strong>${attendee.name}</strong><br>
-                                <small>ID: ${attendee.id} | Section: ${attendee.section}</small>
-                            </div>
-                            <div style="text-align: right;">
-                                <small>${new Date(attendee.timestamp).toLocaleTimeString()}</small>
-                            </div>
-                        </div>
-                    `).join('');
-                
-                attendanceListDiv.innerHTML = attendeesHtml;
-            }
-            
-            function updateSyncStatus(status) {
-                const indicator = syncIndicator;
-                const statusText = syncStatus;
-                
-                indicator.className = 'sync-indicator';
-                
-                switch (status) {
-                    case 'connected':
-                        indicator.classList.add('connected');
-                        statusText.textContent = 'Online';
-                        break;
-                    case 'connecting':
-                        indicator.classList.add('connecting');
-                        statusText.textContent = 'Connecting...';
-                        break;
-                    case 'offline':
-                        statusText.textContent = 'Offline';
-                        break;
-                    case 'error':
-                        statusText.textContent = 'Connection Error';
-                        break;
+                if (!weekNumber || !maxAttendees) {
+                    this.showMessage('Please fill in all required fields', 'danger');
+                    return;
+                }
+
+                const sessionData = {
+                    subjectName: document.getElementById('subjectName').value.trim(),
+                    weekNumber: parseInt(weekNumber),
+                    maxAttendees: parseInt(maxAttendees),
+                    sessionPassword: sessionPassword || null,
+                    outlookEmail: outlookEmail || null,
+                    locationEnabled: enableLocation,
+                    startTime: serverTimestamp(),
+                    status: 'active',
+                    roster: this.roster
+                };
+
+                if (enableLocation) {
+                    const roomName = document.getElementById('roomName').value;
+                    const maxDistance = document.getElementById('maxDistance').value;
+                    
+                    if (!roomName || !maxDistance) {
+                        this.showMessage('Please fill in all location settings', 'danger');
+                        return;
+                    }
+
+                    if (!this.locations[roomName]) {
+                        this.showMessage('Please set the room location first', 'danger');
+                        return;
+                    }
+
+                    sessionData.location = {
+                        roomName,
+                        maxDistance: parseInt(maxDistance),
+                        coordinates: this.locations[roomName]
+                    };
+                }
+
+                try {
+                    const sessionRef = push(ref(this.db, 'sessions'));
+                    this.currentSession = sessionRef.key;
+                    await set(sessionRef, sessionData);
+                    
+                    // Generate QR code and form URL
+                    const formUrl = `${window.location.origin}/form.html?session=${this.currentSession}`;
+                    const qr = qrcode(0, 'L');
+                    qr.addData(formUrl);
+                    qr.make();
+                    
+                    document.getElementById('qrCodeDisplay').innerHTML = qr.createImgTag(5);
+                    document.getElementById('qrCodeDisplay').style.display = 'block';
+                    
+                    this.showDashboard();
+                    this.showMessage('Session started successfully', 'success');
+                } catch (error) {
+                    console.error('Error starting session:', error);
+                    this.showMessage('Error starting session. Please try again.', 'danger');
                 }
             }
-            
-            function showMessage(text, type) {
-                messageDiv.textContent = text;
+
+            async endSession() {
+                if (!this.currentSession) return;
+
+                try {
+                    const sessionRef = ref(this.db, `sessions/${this.currentSession}`);
+                    await set(sessionRef, {
+                        status: 'ended',
+                        endTime: serverTimestamp()
+                    }, { merge: true });
+                    
+                    await this.exportAttendance();
+                    
+                    if (this.submissionsListener) {
+                        off(ref(this.db, `sessions/${this.currentSession}/submissions`), this.submissionsListener);
+                        this.submissionsListener = null;
+                    }
+                    
+                    this.currentSession = null;
+                    this.hideDashboard();
+                    this.showMessage('Session ended successfully', 'success');
+                } catch (error) {
+                    console.error('Error ending session:', error);
+                    this.showMessage('Error ending session. Please try again.', 'danger');
+                }
+            }
+
+            showMessage(message, type) {
+                const messageDiv = document.getElementById('message');
                 messageDiv.className = `alert alert-${type}`;
+                messageDiv.textContent = message;
                 messageDiv.classList.remove('hidden');
-                
+
                 setTimeout(() => {
                     messageDiv.classList.add('hidden');
                 }, 5000);
             }
+
+            setupSubmissionsListener() {
+                if (!this.currentSession) return;
+
+                const submissionsRef = ref(this.db, `sessions/${this.currentSession}/submissions`);
+                this.submissionsListener = onValue(submissionsRef, (snapshot) => {
+                    const submissions = snapshot.val() || {};
+                    const submissionsContainer = document.getElementById('recentSubmissions');
+                    const totalStudents = this.roster ? this.roster.length : 0;
+                    const presentCount = Object.keys(submissions).length;
+                    
+                    document.getElementById('presentCount').textContent = presentCount;
+                    document.getElementById('attendanceRate').textContent = 
+                        totalStudents ? `${Math.round((presentCount / totalStudents) * 100)}%` : '0%';
+
+                    // Update submissions list
+                    submissionsContainer.innerHTML = '';
+                    Object.entries(submissions)
+                        .sort((a, b) => b[1].timestamp - a[1].timestamp)
+                        .slice(0, 10)
+                        .forEach(([id, data]) => {
+                            const student = this.roster.find(s => s.id === id);
+                            if (!student) return;
+
+                            const item = document.createElement('div');
+                            item.className = 'submission-item';
+                            item.innerHTML = `
+                                <div>
+                                    <strong>${student.name}</strong>
+                                    <span class="text-sm text-gray-500">ID: ${student.id}</span>
+                                </div>
+                                <div>
+                                    <span class="text-sm">${new Date(data.timestamp).toLocaleTimeString()}</span>
+                                    ${data.ipDuplicate ? '<i class="fas fa-exclamation-triangle text-warning" title="Duplicate IP detected"></i>' : ''}
+                                </div>
+                            `;
+                            submissionsContainer.appendChild(item);
+                        });
+
+                    // Check if max attendees reached
+                    const maxAttendees = parseInt(document.getElementById('maxAttendees').value);
+                    if (maxAttendees && presentCount >= maxAttendees) {
+                        this.endSession();
+                    }
+                });
+            }
+
+            async exportAttendance() {
+                if (!this.currentSession) return;
+
+                try {
+                    const sessionRef = ref(this.db, `sessions/${this.currentSession}`);
+                    const snapshot = await get(sessionRef);
+                    const sessionData = snapshot.val();
+                    
+                    if (!sessionData || !this.roster) return;
+
+                    const weekNumber = sessionData.weekNumber;
+                    const submissions = sessionData.submissions || {};
+                    
+                    // Create workbook
+                    const wb = XLSX.utils.book_new();
+                    
+                    // Process data for export
+                    const exportData = this.roster.map(student => {
+                        const submission = submissions[student.id];
+                        const row = {
+                            ID: student.id,
+                            Name: student.name,
+                            Section: student.section
+                        };
+
+                        // Add previous weeks' data
+                        Object.entries(student.weeks).forEach(([week, data]) => {
+                            row[`Week${week}`] = data.attendance;
+                            row[`Week${week}_Timestamp`] = data.timestamp;
+                        });
+
+                        // Add current week's data
+                        row[`Week${weekNumber}`] = submission ? 1 : 0;
+                        row[`Week${weekNumber}_Timestamp`] = submission ? submission.timestamp : null;
+
+                        // Calculate total attendance
+                        const totalAttendance = Object.values(student.weeks)
+                            .reduce((sum, data) => sum + (data.attendance || 0), 0) + (submission ? 1 : 0);
+                        row['Total'] = totalAttendance;
+
+                        return row;
+                    });
+
+                    // Create worksheet
+                    const ws = XLSX.utils.json_to_sheet(exportData);
+                    
+                    // Generate filename
+                    const subjectName = sessionData.subjectName || 'Attendance';
+                    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                    let filename;
+                    
+                    if (weekNumber === 1) {
+                        filename = `${subjectName} for Week ${weekNumber} (${timestamp})`;
+                    } else {
+                        filename = `${subjectName} from Week 1 to Week ${weekNumber} (${timestamp})`;
+                    }
+
+                    // Add worksheet to workbook and save
+                    XLSX.utils.book_append_sheet(wb, ws, 'Attendance');
+                    XLSX.writeFile(wb, `${filename}.xlsx`);
+
+                    // Save to session history
+                    this.saveToHistory({
+                        subjectName,
+                        weekNumber,
+                        timestamp: Date.now(),
+                        filename: `${filename}.xlsx`
+                    });
+
+                } catch (error) {
+                    console.error('Error exporting attendance:', error);
+                    alert('Error exporting attendance. Please try again.');
+                }
+            }
+
+            saveToHistory(sessionInfo) {
+                const history = JSON.parse(localStorage.getItem('sessionHistory') || '[]');
+                history.unshift(sessionInfo);
+                
+                // Keep only last 10 sessions
+                while (history.length > 10) {
+                    history.pop();
+                }
+                
+                localStorage.setItem('sessionHistory', JSON.stringify(history));
+                this.updateHistoryUI();
+            }
+
+            loadSessionHistory() {
+                const history = JSON.parse(localStorage.getItem('sessionHistory') || '[]');
+                this.updateHistoryUI(history);
+            }
+
+            updateHistoryUI(history = null) {
+                if (history === null) {
+                    history = JSON.parse(localStorage.getItem('sessionHistory') || '[]');
+                }
+
+                const historyList = document.getElementById('historyList');
+                historyList.innerHTML = '';
+
+                history.forEach(session => {
+                    const item = document.createElement('div');
+                    item.className = 'history-item';
+                    item.innerHTML = `
+                        <div class="history-item-info">
+                            <strong>${session.subjectName}</strong>
+                            <div class="text-sm text-gray-500">
+                                Week ${session.weekNumber} | ${new Date(session.timestamp).toLocaleString()}
+                            </div>
+                        </div>
+                        <div class="history-item-actions">
+                            <button class="btn btn-secondary" onclick="window.open('${session.filename}', '_blank')">
+                                <i class="fas fa-download"></i>
+                            </button>
+                        </div>
+                    `;
+                    historyList.appendChild(item);
+                });
+            }
+
+            clearHistory() {
+                if (confirm('Are you sure you want to clear the session history?')) {
+                    localStorage.removeItem('sessionHistory');
+                    this.updateHistoryUI([]);
+                }
+            }
+
+            showDashboard() {
+                document.getElementById('sessionDashboard').style.display = 'block';
+                this.sessionStartTime = Date.now();
+                this.updateDuration();
+                this.durationInterval = setInterval(() => this.updateDuration(), 1000);
+                this.setupSubmissionsListener();
+            }
+
+            hideDashboard() {
+                document.getElementById('sessionDashboard').style.display = 'none';
+                if (this.durationInterval) {
+                    clearInterval(this.durationInterval);
+                    this.durationInterval = null;
+                }
+            }
+
+            updateDuration() {
+                if (!this.sessionStartTime) return;
+                
+                const duration = Date.now() - this.sessionStartTime;
+                const hours = Math.floor(duration / 3600000);
+                const minutes = Math.floor((duration % 3600000) / 60000);
+                const seconds = Math.floor((duration % 60000) / 1000);
+                
+                document.getElementById('sessionDuration').textContent = 
+                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
         }
-        
-        // Copy URL to clipboard
-        function copyToClipboard() {
-            const urlInput = document.getElementById('sessionUrl');
-            urlInput.select();
-            urlInput.setSelectionRange(0, 99999);
-            document.execCommand('copy');
-            
-            // Show feedback
-            const copyBtn = event.target.closest('.copy-btn');
-            const originalText = copyBtn.innerHTML;
-            copyBtn.innerHTML = '<i class="fas fa-check"></i>';
-            setTimeout(() => {
-                copyBtn.innerHTML = originalText;
-            }, 2000);
-        }
+
+        // Initialize the attendance system
+        const attendanceSystem = new AttendanceSystem();
     </script>
 </body>
 </html>
